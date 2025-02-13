@@ -102,25 +102,28 @@ def get_birthday(birthday, year, today):
     return birth_day
  
  
-def get_daily_quote():
-    app_id = 'jtxlujmhpugquktf '
-    app_secret = 'vko1lJs8dsbtxxsDaNTQXpU1nDMPMurG'
- 
-    url = f"https://www.mxnzp.com/api/daily_word?app_id={app_id}&app_secret={app_secret}"
-    response = requests.get(url)
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data['code'] == 1:
-            content = data['data'][0]['content']
-            author = data['data'][0]['author']
-            return content, author
+def fetch_aiqingyl(): #爱情语录-妖狐数据开放
+    # API URL
+    url = "https://api.yaohud.cn/api/randtext/aiqingyl"
+
+    # 请求参数
+    params = {
+        "key": "6WpLD9pftbqduArcYRJ"
+    }
+
+    try:
+        # 发起 GET 请求
+        response = requests.get(url, params=params)
+
+        # 检查响应状态码
+        if response.status_code == 200:
+            # 返回请求结果
+            return response.text
         else:
-            print(f"获取每日一句失败，错误信息：{data['msg']}")
-            return None, None
-    else:
-        print(f"请求失败，状态码：{response.status_code}")
-        return None, None
+            return f"请求失败，状态码：{response.status_code}"
+    except Exception as e:
+        return f"请求发生错误：{e}"
+
  
  
 def send_message(to_user, access_token, region_name, weather, temp, wind_dir, note_ch, note_en):
@@ -233,8 +236,8 @@ if __name__ == "__main__":
     note_ch = config["note_ch"]
     note_en = config["note_en"]
     if note_ch == "" and note_en == "":
-        # 获取词霸每日金句
-        note_ch, note_en = get_daily_quote()
+        # 获取爱情语录每日金句
+        note_ch, note_en = fetch_aiqingyl()
     # 公众号推送消息
     for user in users:
         send_message(user, accessToken, region, weather, temp, wind_dir, note_ch, note_en)
