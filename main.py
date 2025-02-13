@@ -2,9 +2,23 @@ import random
 from time import localtime
 from requests import get, post
 import requests
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+import time
 import sys
 import os
+
+# 等待至北京时间 7:10
+def wait_until(hour, minute):
+    now = datetime.now()
+    target_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+    # 如果目标时间已经过去了（当天的7:10已经过了），则设置为第二天的7:10
+    if now > target_time:
+        target_time += timedelta(days=1)
+
+    wait_time = (target_time - now).total_seconds()
+    print(f"等待时间: {int(wait_time // 3600)}小时{int((wait_time % 3600) // 60)}分钟")
+    time.sleep(wait_time)
 
 # 获取随机颜色
 def get_color():
@@ -200,29 +214,29 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
         print(response)
 
 if __name__ == "__main__":
-    try:
-        with open("config.txt", encoding="utf-8") as f:
-            config = eval(f.read())
-    except FileNotFoundError:
-        print("推送消息失败，请检查config.txt文件是否与程序位于同一路径")
-        os.system("pause")
-        sys.exit(1)
-    except SyntaxError:
-        print("推送消息失败，请检查配置文件格式是否正确")
-        os.system("pause")
-        sys.exit(1)
+    # 加载配置文件
+    config = {
+        "app_id": "your_app_id",
+        "app_secret": "your_app_secret",
+        "template_id": "your_template_id",
+        "weather_key": "your_weather_key",
+        "love_date": "2022-08-10",
+        "birthday1": {"name": "Alice", "birthday": "2000-06-01"},
+        "birthday2": {"name": "Bob", "birthday": "2000-07-01"},
+    }
 
-    # 获取accessToken
-    accessToken = get_access_token()
+    # 收件人的 openid
+    to_user = "receiver_openid"
+    
+    # 等待至北京时间7:10
+    wait_until(7, 10)
 
-    # 接收的用户
-    users = config["user"]
-    # 传入地区获取天气信息
-    region = config["region"]
-    weather, temp, wind_dir = get_weather(region)
+    # 获取access_token
+    access_token = get_access_token()
 
-    # 公众号推送消息
-    for user in users:
-        send_message(user, accessToken, region, weather, temp, wind_dir)
+    # 获取天气信息
+    region_name = "Beijing"
+    weather, temp, wind_dir = get_weather(region_name)
 
-    os.system("pause")
+    # 发送消息
+    send_message(to_user, access_token, region_name, weather, temp, wind_dir)
