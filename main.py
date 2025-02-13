@@ -25,7 +25,7 @@ def get_birthday(birthday, today):
         birth_date = datetime.date(today.year, birthday_month, birthday_day)
         return (birth_date - today).days
 
-# 获取每日金句（情话）
+# 获取每日金句
 def fetch_aiqingyl():
     url = "https://api.yaohud.cn/api/randtext/aiqingyl"
     params = {"key": "6WpLD9pftbqduArcYRJ"}
@@ -109,7 +109,7 @@ def send_all_messages():
     # 获取access_token
     access_token = get_access_token()
 
-    # 获取情话（随机）
+    # 获取情话
     note_ch, note_en = fetch_aiqingyl()
 
     # 获取和你相爱的日子
