@@ -7,17 +7,15 @@ import time
 import sys
 import os
 
-# 等待至北京时间 7:10
+# 等待至指定时间（如7:10）
 def wait_until(hour, minute):
     now = datetime.now()
     target_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
-
-    # 如果目标时间已经过去了（当天的7:10已经过了），则设置为第二天的7:10
+    # 如果目标时间已经过去，则设置为第二天
     if now > target_time:
         target_time += timedelta(days=1)
-
     wait_time = (target_time - now).total_seconds()
-    print(f"等待时间: {int(wait_time // 3600)}小时{int((wait_time % 3600) // 60)}分钟")
+    print(f"等待时间: {int(wait_time // 3600)}小时 {int((wait_time % 3600) // 60)}分钟")
     time.sleep(wait_time)
 
 # 获取随机颜色
@@ -71,7 +69,6 @@ def fetch_aiqingyl():
     params = {
         "key": "6WpLD9pftbqduArcYRJ"
     }
-
     try:
         response = requests.get(url, params=params)
         if response.status_code == 200:
@@ -87,7 +84,7 @@ def fetch_aiqingyl():
     except Exception as e:
         return f"请求发生错误：{e}", ""
 
-# 获取生日信息
+# 获取生日信息（支持阳历和农历，农历格式以 'r' 开头）
 def get_birthday(birthday, year, today):
     birthday_year = birthday.split("-")[0]
     if birthday_year[0] == "r":
@@ -129,27 +126,21 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
     day = localtime().tm_mday
     today = datetime.date(datetime(year=year, month=month, day=day))
     week = week_list[today.isoweekday() % 7]
-
+    
     # 获取情话
     note_ch, note_en = fetch_aiqingyl()
-
+    
     # 获取在一起的日子
     love_year = int(config["love_date"].split("-")[0])
     love_month = int(config["love_date"].split("-")[1])
     love_day = int(config["love_date"].split("-")[2])
     love_date = date(love_year, love_month, love_day)
     love_days = str(today.__sub__(love_date)).split(" ")[0]
-
-    birthdays = {}
-    for k, v in config.items():
-        if k[0:5] == "birth":
-            birthdays[k] = v
-
+    
     # 获取生日信息
     birthday1 = get_birthday(config["birthday1"]["birthday"], year, today)
     birthday2 = get_birthday(config["birthday2"]["birthday"], year, today)
-
-    # 设置推送模板
+    
     data = {
         "touser": to_user,
         "template_id": config["template_id"],
@@ -194,13 +185,13 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
             }
         }
     }
-
+    
     headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                       'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
     }
-
+    
     response = post(url, headers=headers, json=data).json()
     if response["errcode"] == 40037:
         print("推送消息失败，请检查模板id是否正确")
@@ -214,8 +205,9 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
         print(response)
 
 if __name__ == "__main__":
-    # 加载配置文件
+    # 配置数据：测试模式下直接运行，正式发布时设置 test_mode 为 False
     config = {
+        "test_mode": True,          # 测试模式：True 不等待定时；False 则等待到指定时间
         "app_id": "your_app_id",
         "app_secret": "your_app_secret",
         "template_id": "your_template_id",
@@ -224,19 +216,17 @@ if __name__ == "__main__":
         "birthday1": {"name": "Alice", "birthday": "2000-06-01"},
         "birthday2": {"name": "Bob", "birthday": "2000-07-01"},
     }
-
+    
     # 收件人的 openid
     to_user = "receiver_openid"
     
-    # 等待至北京时间7:10
-    wait_until(7, 10)
-
-    # 获取access_token
+    # 根据 test_mode 判断是否等待到指定时间（如 7:10）
+    if not config["test_mode"]:
+        wait_until(7, 10)
+    else:
+        print("测试模式：立即运行，不等待指定时间。")
+    
     access_token = get_access_token()
-
-    # 获取天气信息
     region_name = "Beijing"
     weather, temp, wind_dir = get_weather(region_name)
-
-    # 发送消息
     send_message(to_user, access_token, region_name, weather, temp, wind_dir)
