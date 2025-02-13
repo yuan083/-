@@ -16,8 +16,7 @@ def get_color():
 def get_access_token():
     app_id = config["app_id"]
     app_secret = config["app_secret"]
-    post_url = ("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={}&secret={}"
-                .format(app_id, app_secret))
+    post_url = ("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={}&secret={}").format(app_id, app_secret)
     try:
         access_token = get(post_url).json()['access_token']
     except KeyError:
@@ -132,6 +131,11 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
         if k[0:5] == "birth":
             birthdays[k] = v
 
+    # 获取生日信息
+    birthday1 = get_birthday(config["birthday1"]["birthday"], year, today)
+    birthday2 = get_birthday(config["birthday2"]["birthday"], year, today)
+
+    # 设置推送模板
     data = {
         "touser": to_user,
         "template_id": config["template_id"],
@@ -166,20 +170,16 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
                 "value": note_en,
                 "color": get_color()
             },
-            "note_ch": {
-                "value": note_ch,
+            "birthday1": {
+                "value": "距离{}的生日还有{}天".format(config["birthday1"]["name"], birthday1),
+                "color": get_color()
+            },
+            "birthday2": {
+                "value": "距离{}的生日还有{}天".format(config["birthday2"]["name"], birthday2),
                 "color": get_color()
             }
         }
     }
-
-    for key, value in birthdays.items():
-        birth_day = get_birthday(value["birthday"], year, today)
-        if birth_day == 0:
-            birthday_data = "今天{}生日哦，祝{}生日快乐！".format(value["name"], value["name"])
-        else:
-            birthday_data = "距离{}的生日还有{}天".format(value["name"], birth_day)
-        data["data"][key] = {"value": birthday_data, "color": get_color()}
 
     headers = {
         'Content-Type': 'application/json',
