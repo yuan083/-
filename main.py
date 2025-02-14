@@ -222,7 +222,7 @@ if __name__ == "__main__":
     
     # 根据 test_mode 判断是否等待到指定时间（如 7:10）
     if not config["test_mode"]:
-        wait_until(7, 10)
+        wait_until(8, 37)
     else:
         print("测试模式：立即运行，不等待指定时间。")
     
