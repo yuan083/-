@@ -28,11 +28,10 @@ def get_access_token():
 # 获取天气信息
 def get_weather(region):
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
     }
     key = config["weather_key"]
-    region_url = "https://geoapi.qweather.com/v2/city/lookup?location={}&key={}".format(region, key)
+    region_url = f"https://geoapi.qweather.com/v2/city/lookup?location={region}&key={key}"
     response = get(region_url, headers=headers).json()
     if response["code"] == "404":
         print("推送消息失败，请检查地区名是否有误！")
@@ -44,7 +43,7 @@ def get_weather(region):
         sys.exit(1)
     else:
         location_id = response["location"][0]["id"]
-    weather_url = "https://devapi.qweather.com/v7/weather/now?location={}&key={}".format(location_id, key)
+    weather_url = f"https://devapi.qweather.com/v7/weather/now?location={location_id}&key={key}"
     response = get(weather_url, headers=headers).json()
     weather = response["now"]["text"]
     temp = response["now"]["temp"] + u"\N{DEGREE SIGN}" + "C"
@@ -53,19 +52,22 @@ def get_weather(region):
 
 # 获取每日一句情话
 def fetch_aiqingyl():
-    url = "https://api.yaohud.cn/api/randtext/aiqingyl"
+    # 替换为新的情话 API 地址
+    url = "https://api.1314.cool/words/api.php"
     params = {
-        "key": "6WpLD9pftbqduArcYRJ"
+        "return": "json"  # 返回 JSON 格式数据
     }
 
     try:
         response = requests.get(url, params=params)
         if response.status_code == 200:
             data = response.json()
-            if data.get("code") == 200:
-                note_ch = data.get("data")[0] if data.get("data") else "未能获取中文情话"
-                note_en = data.get("data")[1] if len(data.get("data", [])) > 1 else "未能获取英文情话"
-                return note_ch, note_en
+            if data.get("code") == "200":
+                # 解析返回的 JSON 数据
+                # 注意：新 API 返回的 JSON 数据结构可能与原 API 不同
+                note_ch = data.get("word", "未能获取中文情话")
+                # 新 API 只返回中文情话，英文情话字段留空或以其他方式处理
+                return note_ch, "未能获取英文情话"
             else:
                 return f"API 返回错误：{data.get('msg')}", ""
         else:
@@ -108,7 +110,7 @@ def get_birthday(birthday, year, today):
 
 # 发送消息
 def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
-    url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={}".format(access_token)
+    url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
     week_list = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
     year = localtime().tm_year
     month = localtime().tm_mon
@@ -183,8 +185,7 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
 
     headers = {
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
     }
 
     response = post(url, headers=headers, json=data).json()
