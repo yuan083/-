@@ -5,6 +5,8 @@ import requests
 from datetime import datetime, date
 import sys
 import os
+import json
+
 
 # 获取随机颜色
 def get_color():
@@ -202,8 +204,8 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
 
 if __name__ == "__main__":
     try:
-        with open("config.txt", encoding="utf-8") as f:
-            config = eval(f.read())
+        with open("config.json", encoding="utf-8") as f:
+            config = json.load(f)
     except FileNotFoundError:
         print("推送消息失败，请检查config.txt文件是否与程序位于同一路径")
         os.system("pause")
@@ -225,5 +227,3 @@ if __name__ == "__main__":
     # 公众号推送消息
     for user in users:
         send_message(user, accessToken, region, weather, temp, wind_dir)
-
-    os.system("pause")
