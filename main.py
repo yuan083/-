@@ -7,14 +7,17 @@ import time
 import sys
 import os
 
+# 等待至北京时间 7:10
 # 等待至指定时间（如7:10）
 def wait_until(hour, minute):
     now = datetime.now()
     target_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    # 如果目标时间已经过去了（当天的7:10已经过了），则设置为第二天的7:10
     # 如果目标时间已经过去，则设置为第二天
     if now > target_time:
         target_time += timedelta(days=1)
     wait_time = (target_time - now).total_seconds()
+    print(f"等待时间: {int(wait_time // 3600)}小时{int((wait_time % 3600) // 60)}分钟")
     print(f"等待时间: {int(wait_time // 3600)}小时 {int((wait_time % 3600) // 60)}分钟")
     time.sleep(wait_time)
 
@@ -84,6 +87,7 @@ def fetch_aiqingyl():
     except Exception as e:
         return f"请求发生错误：{e}", ""
 
+# 获取生日信息
 # 获取生日信息（支持阳历和农历，农历格式以 'r' 开头）
 def get_birthday(birthday, year, today):
     birthday_year = birthday.split("-")[0]
@@ -136,10 +140,15 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
     love_day = int(config["love_date"].split("-")[2])
     love_date = date(love_year, love_month, love_day)
     love_days = str(today.__sub__(love_date)).split(" ")[0]
+    birthdays = {}
+    for k, v in config.items():
+        if k[0:5] == "birth":
+            birthdays[k] = v
     
     # 获取生日信息
     birthday1 = get_birthday(config["birthday1"]["birthday"], year, today)
     birthday2 = get_birthday(config["birthday2"]["birthday"], year, today)
+    # 设置推送模板
     
     data = {
         "touser": to_user,
@@ -205,6 +214,7 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
         print(response)
 
 if __name__ == "__main__":
+    # 加载配置文件
     # 配置数据：测试模式下直接运行，正式发布时设置 test_mode 为 False
     config = {
         "test_mode": True,          # 测试模式：True 不等待定时；False 则等待到指定时间
@@ -219,14 +229,19 @@ if __name__ == "__main__":
     
     # 收件人的 openid
     to_user = "receiver_openid"
-    
+
+    # 等待至北京时间7:10
+    wait_until(7, 10)
+    # 获取access_token
     # 根据 test_mode 判断是否等待到指定时间（如 7:10）
     if not config["test_mode"]:
-        wait_until(8, 39)
+        wait_until(7, 10)
     else:
         print("测试模式：立即运行，不等待指定时间。")
     
     access_token = get_access_token()
+    # 获取天气信息
     region_name = "Beijing"
     weather, temp, wind_dir = get_weather(region_name)
+    # 发送消息
     send_message(to_user, access_token, region_name, weather, temp, wind_dir)
