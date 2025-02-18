@@ -53,23 +53,29 @@ def get_weather(region):
     return weather, temp, wind_dir
 
 # 获取每日一句情话
-def fetch_love_words(api_key):
-    base_url = "https://apis.tianapi.com/saylove/index?key=459603bd8718ec8e2ebd4aabd7a4bde8"
+def fetch_aiqingyl():
+    # 替换为新的情话 API 地址
+    url = "https://api.1314.cool/words/api.php"
     params = {
-        'key': api_key
+        "return": "json"  # 返回 JSON 格式数据
     }
-    
+
     try:
-        response = requests.get(base_url, params=params, timeout=5)
-        response.raise_for_status()  # 检查请求是否成功
-        data = response.json()
-        return data['result']['content']
-    except requests.exceptions.RequestException as e:
-        print(f"请求失败: {e}")
-        return "未能获取到情话，请稍后再试~"
-    except KeyError:
-        print("API响应格式有误")
-        return "API响应有误，请联系管理员"
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("code") == "200":
+                # 解析返回的 JSON 数据
+                # 注意：新 API 返回的 JSON 数据结构可能与原 API 不同
+                note_ch = data.get("word", "未能获取中文情话")
+                # 新 API 只返回中文情话，英文情话字段留空或以其他方式处理
+                return note_ch, "未能获取英文情话"
+            else:
+                return f"API 返回错误：{data.get('msg')}", ""
+        else:
+            return f"请求失败，状态码：{response.status_code}", ""
+    except Exception as e:
+        return f"请求发生错误：{e}", ""
 
 # 获取生日信息
 def get_birthday(birthday, year, today):
@@ -166,7 +172,7 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
             },
             "note_en": {
                 "value": note_en,
-                "color": fetch_love_words()
+                "color": get_color()
             },
             "birthday1": {
                 "value": "距离{}的生日还有{}天".format(config["birthday1"]["name"], birthday1),
