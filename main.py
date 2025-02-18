@@ -54,7 +54,7 @@ def get_weather(region):
 
 # 获取每日一句情话
 def fetch_aiqingyl():
-     url = "https://apis.tianapi.com/saylove/index"
+    url = "https://apis.tianapi.com/saylove/index"
     params = {
         "key": "459603bd8718ec8e2ebd4aabd7a4bde8"  # 替换为你的API KEY
     }
