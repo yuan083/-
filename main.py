@@ -1,12 +1,11 @@
 import random
 from time import localtime
 from requests import get, post
-import requests
+import json
 from datetime import datetime, date
 import sys
 import os
-import json
-
+from zhdate import ZhDate  # 增加了导入
 
 # 获取随机颜色
 def get_color():
@@ -15,7 +14,7 @@ def get_color():
     return random.choice(color_list)
 
 # 获取access_token
-def get_access_token():
+def get_access_token(config):  # 增加了config参数
     app_id = config["app_id"]
     app_secret = config["app_secret"]
     post_url = ("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={}&secret={}").format(app_id, app_secret)
@@ -28,7 +27,7 @@ def get_access_token():
     return access_token
 
 # 获取天气信息
-def get_weather(region):
+def get_weather(region, config):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
     }
@@ -52,90 +51,77 @@ def get_weather(region):
     wind_dir = response["now"]["windDir"]
     return weather, temp, wind_dir
 
-# 获取每日一句情话
-def fetch_aiqingyl():
-    # 替换为新的情话 API 地址
-    url = "https://api.1314.cool/words/api.php"
-    params = {
-        "return": "json"  # 返回 JSON 格式数据
-    }
-
-    try:
-        response = requests.get(url, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get("code") == "200":
-                # 解析返回的 JSON 数据
-                # 注意：新 API 返回的 JSON 数据结构可能与原 API 不同
-                note_ch = data.get("word", "未能获取中文情话")
-                # 新 API 只返回中文情话，英文情话字段留空或以其他方式处理
-                return note_ch, "未能获取英文情话"
-            else:
-                return f"API 返回错误：{data.get('msg')}", ""
-        else:
-            return f"请求失败，状态码：{response.status_code}", ""
-    except Exception as e:
-        return f"请求发生错误：{e}", ""
-
 # 获取生日信息
 def get_birthday(birthday, year, today):
-    birthday_year = birthday.split("-")[0]
-    if birthday_year[0] == "r":
+    if birthday.startswith("r"):
         r_mouth = int(birthday.split("-")[1])
         r_day = int(birthday.split("-")[2])
         try:
-            birthday = ZhDate(year, r_mouth, r_day).to_datetime().date()
+            birthday_date = ZhDate(year, r_mouth, r_day).to_datetime().date()
         except TypeError:
             print("请检查生日的日子是否在今年存在")
             os.system("pause")
             sys.exit(1)
-        birthday_month = birthday.month
-        birthday_day = birthday.day
+        birthday_month = birthday_date.month
+        birthday_day = birthday_date.day
         year_date = date(year, birthday_month, birthday_day)
     else:
         birthday_month = int(birthday.split("-")[1])
         birthday_day = int(birthday.split("-")[2])
         year_date = date(year, birthday_month, birthday_day)
     if today > year_date:
-        if birthday_year[0] == "r":
-            r_last_birthday = ZhDate((year + 1), r_mouth, r_day).to_datetime().date()
-            birth_date = date((year + 1), r_last_birthday.month, r_last_birthday.day)
+        if birthday.startswith("r"):
+            try:
+                birth_date = ZhDate(year + 1, r_mouth, r_day).to_datetime().date()
+            except TypeError:
+                print("请检查生日的日子是否在明年存在")
+                os.system("pause")
+                sys.exit(1)
         else:
-            birth_date = date((year + 1), birthday_month, birthday_day)
-        birth_day = str(birth_date.__sub__(today)).split(" ")[0]
+            birth_date = date(year + 1, birthday_month, birthday_day)
+        birth_day = str(birth_date - today).split(" ")[0]
     elif today == year_date:
         birth_day = 0
     else:
         birth_date = year_date
-        birth_day = str(birth_date.__sub__(today)).split(" ")[0]
+        birth_day = str(birth_date - today).split(" ")[0]
     return birth_day
 
+# 获取每日一句情话
+apikey = "459603bd8718ec8e2ebd4aabd7a4bde8"
+def get_love_words(apikey):
+    """获取土味情话"""
+    url = f"https://apis.tianapi.com/saylove/index?key={apikey}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        return data['result']['content']
+    else:
+        return "未能获取情话"
+
 # 发送消息
-def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
+def send_message(to_user, access_token, region_name, weather, temp, wind_dir, config):
     url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
+    year = date.today().year
+    month = date.today().month
+    day = date.today().day
+    today = date(year, month, day)
     week_list = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
-    year = localtime().tm_year
-    month = localtime().tm_mon
-    day = localtime().tm_mday
-    today = datetime.date(datetime(year=year, month=month, day=day))
     week = week_list[today.isoweekday() % 7]
 
     # 获取情话
-    note_ch, note_en = fetch_aiqingyl()
+    love_words = get_love_words(apikey)
 
     # 获取在一起的日子
-    love_year = int(config["love_date"].split("-")[0])
-    love_month = int(config["love_date"].split("-")[1])
-    love_day = int(config["love_date"].split("-")[2])
-    love_date = date(love_year, love_month, love_day)
-    love_days = str(today.__sub__(love_date)).split(" ")[0]
-
-    birthdays = {}
-    for k, v in config.items():
-        if k[0:5] == "birth":
-            birthdays[k] = v
+    try:
+        love_date = date(*map(int, config["love_date"].split("-")))
+        love_days = (today - love_date).days
+    except:
+        love_days = 0
+        print("请检查love_date格式是否正确")
 
     # 获取生日信息
+    birthdays = config.get("birthdays", {})
     birthday1 = get_birthday(config["birthday1"]["birthday"], year, today)
     birthday2 = get_birthday(config["birthday2"]["birthday"], year, today)
 
@@ -147,7 +133,7 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
         "topcolor": "#FF0000",
         "data": {
             "date": {
-                "value": "{} {}".format(today, week),
+                "value": f"{today} {week}",
                 "color": get_color()
             },
             "region": {
@@ -167,19 +153,19 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
                 "color": get_color()
             },
             "love_day": {
-                "value": love_days,
+                "value": f"在一起的第{love_days}天",
                 "color": get_color()
             },
-            "note_en": {
-                "value": note_en,
+            "note": {  # 将英文和中文情话合并为一个字段
+                "value": love_words,
                 "color": get_color()
             },
             "birthday1": {
-                "value": "距离{}的生日还有{}天".format(config["birthday1"]["name"], birthday1),
+                "value": f"距离{config['birthday1']['name']}的生日还有{birthday1}天",
                 "color": get_color()
             },
             "birthday2": {
-                "value": "距离{}的生日还有{}天".format(config["birthday2"]["name"], birthday2),
+                "value": f"距离{config['birthday2']['name']}的生日还有{birthday2}天",
                 "color": get_color()
             }
         }
@@ -191,39 +177,32 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir):
     }
 
     response = post(url, headers=headers, json=data).json()
-    if response["errcode"] == 40037:
-        print("推送消息失败，请检查模板id是否正确")
-    elif response["errcode"] == 40036:
-        print("推送消息失败，请检查模板id是否为空")
-    elif response["errcode"] == 40003:
-        print("推送消息失败，请检查微信号是否正确")
-    elif response["errcode"] == 0:
-        print("推送消息成功")
+    if response.get("errcode"):
+        print(f"推送消息失败，错误码：{response['errcode']}，错误信息：{response.get('errmsg', '未知错误')}")
     else:
-        print(response)
+        print("推送消息成功")
 
 if __name__ == "__main__":
     try:
         with open("config.json", encoding="utf-8") as f:
             config = json.load(f)
     except FileNotFoundError:
-        print("推送消息失败，请检查config.txt文件是否与程序位于同一路径")
+        print("推送消息失败，请检查config.json文件是否与程序位于同一路径")
         os.system("pause")
         sys.exit(1)
-    except SyntaxError:
+    except json.JSONDecodeError:
         print("推送消息失败，请检查配置文件格式是否正确")
         os.system("pause")
         sys.exit(1)
 
     # 获取accessToken
-    accessToken = get_access_token()
+    accessToken = get_access_token(config)
 
-    # 接收的用户
-    users = config["user"]
     # 传入地区获取天气信息
     region = config["region"]
-    weather, temp, wind_dir = get_weather(region)
+    weather, temp, wind_dir = get_weather(region, config)
 
     # 公众号推送消息
+    users = config.get("user", [])
     for user in users:
-        send_message(user, accessToken, region, weather, temp, wind_dir)
+        send_message(user, accessToken, region, weather, temp, wind_dir, config)
