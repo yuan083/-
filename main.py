@@ -54,28 +54,24 @@ def get_weather(region):
 
 # 获取每日一句情话
 def fetch_aiqingyl():
-    # 替换为新的情话 API 地址
-    url = "https://api.1314.cool/words/api.php"
+     url = "https://apis.tianapi.com/saylove/index"
     params = {
-        "return": "json"  # 返回 JSON 格式数据
+        "key": "459603bd8718ec8e2ebd4aabd7a4bde8"  # 替换为你的API KEY
     }
 
     try:
         response = requests.get(url, params=params)
         if response.status_code == 200:
             data = response.json()
-            if data.get("code") == "200":
-                # 解析返回的 JSON 数据
-                # 注意：新 API 返回的 JSON 数据结构可能与原 API 不同
-                note_ch = data.get("word", "未能获取中文情话")
-                # 新 API 只返回中文情话，英文情话字段留空或以其他方式处理
-                return note_ch, "未能获取英文情话"
+            if data.get("code") == 200:  # 注意接口返回的是整型200
+                content = data.get("result", {}).get("content", "未能获取情话内容")
+                return content, ""  # 英文情话字段留空
             else:
                 return f"API 返回错误：{data.get('msg')}", ""
         else:
             return f"请求失败，状态码：{response.status_code}", ""
     except Exception as e:
-        return f"请求发生错误：{e}", ""
+        return f"请求发生错误：{str(e)}", ""
 
 # 获取生日信息
 def get_birthday(birthday, year, today):
